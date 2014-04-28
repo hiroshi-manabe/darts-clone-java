@@ -7,7 +7,10 @@ package jp.dartsclone;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import static org.junit.Assert.*;
 import org.junit.*;
 
@@ -41,35 +44,37 @@ public class DoubleArrayTest {
     
     @Test
     public void testMain() {
-        Set<String> validKeys = generateValidKeys(NUM_VALID_KEYS);
-        Set<String> invalidKeys = generateInvalidKeys(NUM_INVALID_KEYS, validKeys);
+        SortedSet<byte[]> validKeys = generateValidKeys(NUM_VALID_KEYS);
+        Set<byte[]> invalidKeys = generateInvalidKeys(NUM_INVALID_KEYS, validKeys);
         testDarts(validKeys, invalidKeys);
     }
     
-    private void testDarts(Set<String> validKeys, Set<String> invalidKeys) {
-        List<String> keys = new ArrayList<String>(validKeys);
-        List<Integer> values = new ArrayList<Integer>();
+    private void testDarts(SortedSet<byte[]> validKeys, Set<byte[]> invalidKeys) {
+        byte[][] byteKeys = validKeys.toArray(new byte[0][0]);
+        byte[][] byteInvalidKeys = invalidKeys.toArray(new byte[0][0]);
+                
+        int[] values = new int[byteKeys.length];
         
         int keyId = 0;
-        for (String key : keys) {
-            values.add(keyId);
+        for (int i = 0; i < values.length; ++i) {
+            values[i] = keyId;
             ++keyId;
         }
         
         DoubleArray dict = new DoubleArray();
-        dict.build(keys, null);
-        testDict(dict, keys, values, invalidKeys);
+        dict.build(byteKeys, null);
+        testDict(dict, byteKeys, values, byteInvalidKeys);
         
-        dict.build(keys, values);
-        testDict(dict, keys, values, invalidKeys);
+        dict.build(byteKeys, values);
+        testDict(dict, byteKeys, values, byteInvalidKeys);
 
         Random random = new Random();
         random.setSeed(0);
-        for (int i = 0; i < values.size(); ++i) {
-            values.set(i, random.nextInt(10));
+        for (int i = 0; i < values.length; ++i) {
+            values[i] = random.nextInt(10);
         }
-        dict.build(keys, values);
-        testDict(dict, keys, values, invalidKeys);
+        dict.build(byteKeys, values);
+        testDict(dict, byteKeys, values, byteInvalidKeys);
         
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
@@ -84,42 +89,55 @@ public class DoubleArrayTest {
             fail();
         }
         assertEquals(dict.size(), dictCopy.size());
-        testDict(dictCopy, keys, values, invalidKeys);
+        testDict(dictCopy, byteKeys, values, byteInvalidKeys);
         
-        testCommonPrefixSearch(dict, keys, values, invalidKeys);
+        testCommonPrefixSearch(dict, byteKeys, values);
     }
     
     private void testDict(DoubleArray dict,
-    List<String> keys, List<Integer> values, Set<String> invalidKeys) {
+    byte[][] keys, int[] values, byte[][] invalidKeys) {
         int value;
         Pair<String, Integer> result;
         
-        for (int i = 0; i < keys.size(); ++i) {
-            assertEquals(values.get(i).intValue(),
-                    dict.exactMatchSearch(keys.get(i)));
+        for (int i = 0; i < keys.length; ++i) {
+            assertEquals(values[i],
+                    dict.exactMatchSearch(keys[i]));
         }
         
-        for (String invalidKey : invalidKeys) {
+        for (byte[] invalidKey : invalidKeys) {
             assertEquals(dict.exactMatchSearch(invalidKey), -1);
         }
     }
 
     private void testCommonPrefixSearch(DoubleArray dict,
-    List<String> keys, List<Integer> values, Set<String> invalidKeys) {
-        for (int i = 0; i < keys.size(); ++i) {
-            List<Pair<String, Integer>> results = dict.commonPrefixSearch(
-                    keys.get(i), MAX_NUM_RESULTS);
+            byte[][] keys, int[] values) {
+        for (int i = 0; i < keys.length; ++i) {
+            List<Pair<Integer, Integer>> results = dict.commonPrefixSearch(
+                    keys[i], MAX_NUM_RESULTS);
             
             assertTrue(results.size() >= 1);
             assertTrue(results.size() < 10);
             
-            assertEquals(keys.get(i), results.get(results.size() - 1).first);
-            assertEquals(values.get(i), results.get(results.size() - 1).second);
+            assertEquals(keys[i].length, results.get(results.size() - 1).first.intValue());
+            assertEquals(values[i], results.get(results.size() - 1).second.intValue());
         }
     }
     
-    private SortedSet<String> generateValidKeys(int numKeys) {
-        SortedSet<String> validKeys = new TreeSet<String>();
+    private SortedSet<byte[]> generateValidKeys(int numKeys) {
+        SortedSet<byte[]> validKeys = new TreeSet<byte[]>(new Comparator<byte[]>() {
+            @Override
+            public int compare(byte[] left, byte[] right) {
+                for (int i = 0, j = 0; i < left.length && j < right.length; i++, j++) {
+                    int a = (left[i] & 0xff);
+                    int b = (right[j] & 0xff);
+                    if (a != b) {
+                        return a - b;
+                    }
+                }
+                return left.length - right.length;
+            }            
+        });
+        
         Random random = new Random();
         random.setSeed(1);
         StringBuilder keyBuilder = new StringBuilder();
@@ -129,13 +147,17 @@ public class DoubleArrayTest {
             for (int i = 0; i < length; ++i) {
                 keyBuilder.append((char)('A' + random.nextInt(26)));
             }
-            validKeys.add(keyBuilder.toString());
+            try {
+                validKeys.add(keyBuilder.toString().getBytes("UTF-8"));
+            } catch (UnsupportedEncodingException ex) {
+                Logger.getLogger(DoubleArrayTest.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
         return validKeys;
     }
     
-    private SortedSet<String> generateInvalidKeys(int numKeys, Set<String> validKeys) {
-        SortedSet<String> invalidKeys = new TreeSet<String>();
+    private Set<byte[]> generateInvalidKeys(int numKeys, Set<byte[]> validKeys) {
+        Set<byte[]> invalidKeys = new HashSet<byte[]>();
         Random random = new Random();
         StringBuilder keyBuilder = new StringBuilder();
         while (invalidKeys.size() < numKeys) {
@@ -144,9 +166,14 @@ public class DoubleArrayTest {
             for (int i = 0; i < length; ++i) {
                 keyBuilder.append((char)('A' + random.nextInt(26)));
             }
-            String generatedKey = keyBuilder.toString();
-            if (!validKeys.contains(generatedKey)) {
-                invalidKeys.add(keyBuilder.toString());
+            byte[] generatedKey;
+            try {
+                generatedKey = keyBuilder.toString().getBytes("UTF-8");
+                if (!validKeys.contains(generatedKey)) {
+                    invalidKeys.add(generatedKey);
+                }
+            } catch (UnsupportedEncodingException ex) {
+                Logger.getLogger(DoubleArrayTest.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         return invalidKeys;

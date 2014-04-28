@@ -17,30 +17,6 @@ import jp.dartsclone.details.Keyset;
  * @author manabe
  */
 public class DoubleArray {
-    public void build(List<String> keys, List<Integer> values) {
-        byte[][] byteKeys = new byte[keys.size()][];
-        int count = 0;
-        try {
-            for (String key : keys) {
-                byteKeys[count++] = key.getBytes("UTF-8");
-            }
-        } catch (UnsupportedEncodingException ex) {
-            Logger.getLogger(DoubleArray.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
-        int[] arrayValues = null;
-        
-        if (values != null && !values.isEmpty()) {
-            arrayValues = new int[values.size()];
-        
-            count = 0;
-            for (int value : values) {
-                arrayValues[count++] = value;
-            }
-        }
-        build(byteKeys, arrayValues);
-    }
-    
     public void build(byte[][] keys, int[] values) {
         Keyset keyset = new Keyset(keys, values);
         DoubleArrayBuilder builder = new DoubleArrayBuilder();
@@ -135,34 +111,6 @@ public class DoubleArray {
         unit = _array[nodePos ^ ((unit >>> 10) << ((unit & (1 << 9)) >>> 6))];
         // return unit.value();
         return unit & ((1 << 31) - 1);
-    }
-    
-    /**
-     * Returns the keys that begins with the given key and its corresponding values.
-     * CAUTION: The keys will be converted to UTF-8 for each calls.
-     *          DON'T USE THIS METHOD IF SPEED MATTERS!
-     * @param key
-     * @param maxResults
-     * @return found keys and values
-     */
-    public List<Pair<String, Integer>> commonPrefixSearch(String key,
-            int maxResults) {
-        List<Pair<String, Integer>> result =
-                new ArrayList<Pair<String, Integer>>();
-        try {
-            byte[] byteKey = key.getBytes("UTF-8");
-            List<Pair<Integer, Integer>> byteResult = commonPrefixSearch(
-                    byteKey, maxResults);
-            for (Pair<Integer, Integer> ret : byteResult) {
-                byte[] bytes = new byte[ret.first];
-                System.arraycopy(byteKey, 0, bytes, 0, ret.first);
-                result.add(new Pair<String, Integer>(
-                        new String(bytes, "UTF-8"), ret.second));
-            }
-        } catch (UnsupportedEncodingException ex) {
-            Logger.getLogger(DoubleArray.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return result;
     }
     
     /**
