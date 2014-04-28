@@ -1,0 +1,13 @@
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+# Mac specific
+.DS_STORE
+
+# Backup files
+*~
+#*
