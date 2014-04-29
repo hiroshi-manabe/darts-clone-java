@@ -96,14 +96,10 @@ public class DoubleArrayTest {
     
     private void testDict(DoubleArray dict,
     byte[][] keys, int[] values, byte[][] invalidKeys) {
-        int value;
-        Pair<String, Integer> result;
-        
         for (int i = 0; i < keys.length; ++i) {
             assertEquals(values[i],
                     dict.exactMatchSearch(keys[i]));
         }
-        
         for (byte[] invalidKey : invalidKeys) {
             assertEquals(dict.exactMatchSearch(invalidKey), -1);
         }
