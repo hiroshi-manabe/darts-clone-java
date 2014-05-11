@@ -20,7 +20,7 @@ There are some points you should be aware of:
 Caveats:
 
 1. "Keys must not contain zeros" means you cannot put UTF-16 string (Java String) represented in byte array.
-1. Maybe you want to use UTF-8 string represented in byte arrays. That is basically a good idea. But if you do so, be sure to sort the keys AFTER converting to UTF-8, not before. The sort order may change before converting from String and after converting into UTF-8 byte arrays.
+1. Maybe you want to use UTF-8 string represented in byte arrays. That is basically a good idea. But if you do so, be sure to sort the keys AFTER converting to UTF-8, not before. The sort order may change before converting from String and after converting to UTF-8 byte arrays.
 
 LICENSE
 -------
