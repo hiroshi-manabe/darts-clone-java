@@ -109,7 +109,7 @@ public class DoubleArrayTest {
             byte[][] keys, int[] values) {
         for (int i = 0; i < keys.length; ++i) {
             List<Pair<Integer, Integer>> results = dict.commonPrefixSearch(
-                    keys[i], MAX_NUM_RESULTS);
+                    keys[i], 0, MAX_NUM_RESULTS);
             
             assertTrue(results.size() >= 1);
             assertTrue(results.size() < 10);
